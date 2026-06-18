@@ -1,5 +1,7 @@
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$target = Join-Path $scriptDir 'Start-CodexUsageTray.bat'
+$exeTarget = Join-Path $scriptDir 'dist\CodexUsageWidget.exe'
+$batTarget = Join-Path $scriptDir 'Start-CodexUsageTray.bat'
+$target = if (Test-Path -LiteralPath $exeTarget) { $exeTarget } else { $batTarget }
 $startup = [Environment]::GetFolderPath('Startup')
 $shortcutPath = Join-Path $startup 'Codex Usage Meter.lnk'
 $oldShortcutPath = Join-Path $startup 'Codex Usage Tray.lnk'

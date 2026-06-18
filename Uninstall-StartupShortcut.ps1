@@ -10,7 +10,10 @@ foreach ($path in @($shortcutPath, $oldShortcutPath)) {
 }
 
 Get-CimInstance Win32_Process |
-    Where-Object { $_.Name -match 'powershell|pwsh' -and $_.CommandLine -like '*CodexUsageTray.ps1*' } |
+    Where-Object {
+        ($_.Name -match 'powershell|pwsh' -and $_.CommandLine -like '*CodexUsageTray.ps1*') -or
+        $_.Name -eq 'CodexUsageWidget.exe'
+    } |
     ForEach-Object {
         try {
             Stop-Process -Id $_.ProcessId -Force

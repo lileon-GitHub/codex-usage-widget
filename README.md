@@ -17,18 +17,39 @@ Codex 剩余额度
 - 小字显示当前线程累计输入、缓存命中和输出 token。
 - 颜色提示压力：绿色正常，黄色偏紧，红色接近耗尽。
 - 左键拖动可以移动位置，位置会保存到 `%APPDATA%\CodexUsageMeter\settings.json`。
-- 右键菜单支持刷新、打开 ChatGPT/Codex、查看 `/status` 校准说明、退出。
-- 无需安装 npm/Python 依赖，使用系统 PowerShell/WinForms。
+- 右键菜单支持刷新、开关开机启动、打开 ChatGPT/Codex、查看 `/status` 校准说明、退出。
+- 发布版可以直接运行单个 `CodexUsageWidget.exe`。
+- 无需安装 npm/Python 依赖；源码构建使用 Windows 自带 .NET Framework C# 编译器。
 
 ## 快速使用
 
-下载仓库后，双击：
+下载 release 后，双击：
+
+```text
+CodexUsageWidget.exe
+```
+
+如果你是从源码仓库下载，可以先双击：
+
+```bat
+build.bat
+```
+
+生成：
+
+```text
+dist\CodexUsageWidget.exe
+```
+
+然后双击 exe 运行。
+
+兼容启动器也可用：
 
 ```bat
 Start-CodexUsageTray.bat
 ```
 
-如果 Codex 正在运行，小浮窗会出现在任务栏右下角附近。
+它会优先启动 `dist\CodexUsageWidget.exe`；如果没有 exe，会回退到 PowerShell 脚本版。Codex 正在运行时，小浮窗会出现在任务栏右下角附近。
 
 ## 安装为开机启动
 
