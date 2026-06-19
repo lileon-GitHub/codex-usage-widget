@@ -43,6 +43,8 @@ namespace CodexUsageWidget
         public double? SecondaryPercent;
         public long? PrimaryReset;
         public long? SecondaryReset;
+        public bool PrimaryLocallyReset;
+        public bool SecondaryLocallyReset;
         public DateTime? LatestEventTime;
     }
 
@@ -223,8 +225,26 @@ namespace CodexUsageWidget
             snapshot.SecondaryPercent = latest.SecondaryUsedPercent;
             snapshot.PrimaryReset = latest.PrimaryReset;
             snapshot.SecondaryReset = latest.SecondaryReset;
+            ApplyLocalResetInference(snapshot);
             snapshot.LatestEventTime = latest.Timestamp.HasValue ? latest.Timestamp.Value.LocalDateTime : (DateTime?)null;
             return snapshot;
+        }
+
+        private static void ApplyLocalResetInference(UsageSnapshot snapshot)
+        {
+            long now = DateTimeOffset.Now.ToUnixTimeSeconds();
+
+            if (snapshot.PrimaryReset.HasValue && now >= snapshot.PrimaryReset.Value)
+            {
+                snapshot.PrimaryPercent = 0;
+                snapshot.PrimaryLocallyReset = true;
+            }
+
+            if (snapshot.SecondaryReset.HasValue && now >= snapshot.SecondaryReset.Value)
+            {
+                snapshot.SecondaryPercent = 0;
+                snapshot.SecondaryLocallyReset = true;
+            }
         }
 
         private static TokenEvent FindLatestTokenEvent(FileInfo[] files)
@@ -285,6 +305,7 @@ namespace CodexUsageWidget
         private string GetTokenText(UsageSnapshot snapshot)
         {
             if (!snapshot.Found) return "等待 Codex 写入用量日志";
+            if (snapshot.PrimaryLocallyReset) return "5小时已重置 · 等待新窗口 token";
             return string.Format(CultureInfo.CurrentCulture, "入 {0}  ·  命中 {1}  ·  出 {2}", FormatToken(snapshot.ThreadInputTokens), FormatToken(snapshot.ThreadCachedTokens), FormatToken(snapshot.ThreadOutputTokens));
         }
 
@@ -294,11 +315,13 @@ namespace CodexUsageWidget
             if (!snapshot.Found) return "Codex 正在运行，但还没有读到 token_count 日志";
             string primaryUsed = snapshot.PrimaryPercent.HasValue ? snapshot.PrimaryPercent.Value.ToString("N0", CultureInfo.CurrentCulture) + "%" : "未知";
             string secondaryUsed = snapshot.SecondaryPercent.HasValue ? snapshot.SecondaryPercent.Value.ToString("N0", CultureInfo.CurrentCulture) + "%" : "未知";
+            string primaryReset = snapshot.PrimaryLocallyReset ? "已到重置时间，等待 Codex 同步" : FormatReset(snapshot.PrimaryReset);
+            string secondaryReset = snapshot.SecondaryLocallyReset ? "已到重置时间，等待 Codex 同步" : FormatReset(snapshot.SecondaryReset);
             string updated = snapshot.LatestEventTime.HasValue ? snapshot.LatestEventTime.Value.ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture) : "未知";
             return string.Format(CultureInfo.CurrentCulture,
                 "Codex 用量估算 ({0})\r\n5小时剩余: {1}，已用: {2}，重置: {3}\r\n本周剩余: {4}，已用: {5}，重置: {6}\r\n\r\n当前线程累计: {7} tokens\r\n输入: {8}，缓存命中: {9}\r\n输出: {10}，推理输出: {11}\r\n\r\n最近一次: {12} tokens\r\n输入: {13}，缓存命中: {14}\r\n输出: {15}，推理输出: {16}\r\n\r\n今日估算: {17} tokens（本地日志估算，仅供参考）\r\n更新: {18}",
-                snapshot.Plan, FormatPercent(GetRemaining(snapshot.PrimaryPercent)), primaryUsed, FormatReset(snapshot.PrimaryReset),
-                FormatPercent(GetRemaining(snapshot.SecondaryPercent)), secondaryUsed, FormatReset(snapshot.SecondaryReset),
+                snapshot.Plan, FormatPercent(GetRemaining(snapshot.PrimaryPercent)), primaryUsed, primaryReset,
+                FormatPercent(GetRemaining(snapshot.SecondaryPercent)), secondaryUsed, secondaryReset,
                 FormatToken(snapshot.ThreadTotalTokens), FormatToken(snapshot.ThreadInputTokens), FormatToken(snapshot.ThreadCachedTokens), FormatToken(snapshot.ThreadOutputTokens), FormatToken(snapshot.ThreadReasoningTokens),
                 FormatToken(snapshot.LastTotalTokens), FormatToken(snapshot.LastInputTokens), FormatToken(snapshot.LastCachedTokens), FormatToken(snapshot.LastOutputTokens), FormatToken(snapshot.LastReasoningTokens),
                 FormatToken(snapshot.TodayTokens), updated);
